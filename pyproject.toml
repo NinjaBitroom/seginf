@@ -1,0 +1,22 @@
+[project]
+name = "seginf"
+version = "0.1.0"
+description = "Exercícios de Segurança da Informação"
+authors = [
+    {name = "Gabriel Bitencourt", email = "gabrielbitercourt@gmail.com"},
+]
+dependencies = [
+    "flask>=3.0.2",
+    "passlib>=1.7.4",
+]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+[tool.pdm.scripts]
+at1 = "flask --debug -A at1 run"
+at2 = "flask --debug -A at2 run"
+at3 = "flask --debug -A at3 run"
+
+[tool.pdm]
+distribution = false

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <main>
+        <h1>Parabéns! Você está autenticado!</h1>
+        <a href="/logout">Deslogar</a>
+        <h2>Detalhes da Conta</h2>
+        <p>Número da conta: {{ conta[0] }}</p>
+        <p>Tipo da conta: {{ conta[1] }}</p>
+        <p>Agência: {{ conta[2] }}</p>
+        <p>Saldo: {{ conta[3] }}</p>
+        <h2>Depositar</h2>
+        <form action="/depositar" method="post">
+            <input type="number" name="valor" id="valor" placeholder="Valor" required>
+            <button type="submit">Depositar</button>
+        </form>
+        <h2>Sacar</h2>
+        <form action="/sacar" method="post">
+            <input type="number" name="valor" id="valor" placeholder="Valor" required>
+            <button type="submit">Sacar</button>
+        </form>
+        <h2>Fazer transferência</h2>
+        <form action="/transferir" method="post">
+            <input type="number" name="destino" id="destino" placeholder="Número da conta destino" required>
+            <input type="number" name="valor" id="valor" placeholder="Valor" required>
+            <button type="submit">Transferir</button>
+        </form>
+    </main>
+</body>
+</html>
