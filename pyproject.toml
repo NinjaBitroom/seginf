@@ -13,12 +13,6 @@ requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "MIT"}
 
-[project.optional-dependencies]
-dev = [
-    "pyright>=1.1.350",
-    "isort>=5.13.2",
-]
-
 [tool.pdm]
 distribution = false
 
@@ -26,6 +20,12 @@ distribution = false
 at1 = "flask --debug -A at1 run"
 at2 = "flask --debug -A at2 run"
 at3 = "flask --debug -A at3 run"
+
+[tool.pdm.dev-dependencies]
+all = [
+    "pyright>=1.1.350",
+    "isort>=5.13.2",
+]
 
 [tool.pyright]
 pythonVersion = "3.12"
