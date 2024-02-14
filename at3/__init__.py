@@ -1,9 +1,10 @@
-import flask
-import sqlite3
-from passlib.hash import pbkdf2_sha256
-import typing
 import os
+import sqlite3
+import typing
 from os import path
+
+import flask
+from passlib.hash import pbkdf2_sha256
 from werkzeug import exceptions
 
 type tipos = typing.Literal['corrente', 'poupanca']
@@ -70,8 +71,8 @@ def login():
                 return flask.redirect('/')
             return flask.render_template('login.html')
         case 'POST':
-            login: str = flask.request.form.get('login')
-            senha: str = flask.request.form.get('senha')
+            login: str | None = flask.request.form.get('login')
+            senha: str | None = flask.request.form.get('senha')
             if not login or not senha:
                 flask.abort(400, 'Login e senha são obrigatórios')
             con: sqlite3.Connection = sqlite3.connect(
@@ -102,11 +103,11 @@ def registrar():
                 return flask.redirect('/')
             return flask.render_template('registro.html')
         case 'POST':
-            login: str = flask.request.form.get('login')
-            senha: str = flask.request.form.get('senha')
-            tipo: str = flask.request.form.get('tipo')
-            agencia: int = flask.request.form.get('agencia')
-            saldo: float = flask.request.form.get('saldo')
+            login: str | None = flask.request.form.get('login')
+            senha: str | None = flask.request.form.get('senha')
+            tipo: str | None = flask.request.form.get('tipo')
+            agencia: int = int(flask.request.form.get('agencia', 0))
+            saldo: float = float(flask.request.form.get('saldo', 0))
             if not login or not senha:
                 flask.abort(400, 'Login e senha são obrigatórios')
             hash: str = pbkdf2_sha256.hash(senha)
@@ -146,7 +147,7 @@ def saque():
     valor: float = float(flask.request.form.get('valor', 0))
     if valor <= 0:
         flask.abort(400, 'Valor inválido')
-    login: str = flask.session.get('login')
+    login: str | None = flask.session.get('login')
     with sqlite3.connect(path.join(app.instance_path, 'at3.db')) as con:
         cur: sqlite3.Cursor = con.execute(
             "SELECT saldo FROM conta WHERE login = ?",
@@ -176,7 +177,7 @@ def deposito():
     valor: float = float((flask.request.form).get('valor', 0))
     if valor <= 0:
         flask.abort(400, 'Valor inválido')
-    login: str = flask.session.get('login')
+    login: str | None = flask.session.get('login')
     with sqlite3.connect(path.join(app.instance_path, 'at3.db')) as con:
         cur: sqlite3.Cursor = con.execute(
             "UPDATE conta SET saldo = saldo + ? WHERE login = ?",
@@ -197,10 +198,10 @@ def deposito():
 @app.route('/transferir', methods=('POST',))
 def transferencia():
     valor: float = float(flask.request.form.get('valor', 0))
-    num_destino: int = int(flask.request.form.get('destino'))
+    num_destino: int = int(flask.request.form.get('destino', 0))
     if valor <= 0:
         flask.abort(400, 'Valor inválido')
-    login: str = flask.session.get('login')
+    login: str | None = flask.session.get('login')
     with sqlite3.connect(path.join(app.instance_path, 'at3.db')) as con:
         cur: sqlite3.Cursor = con.execute(
             "SELECT saldo FROM conta WHERE login = ?",

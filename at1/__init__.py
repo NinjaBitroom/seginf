@@ -1,10 +1,10 @@
-import flask
-import sqlite3
 import os
+import sqlite3
 from os import path
+
+import flask
 from passlib.hash import pbkdf2_sha256
 from werkzeug import exceptions
-
 
 app: flask.Flask = flask.Flask(__name__)
 app.secret_key = 'segredo'
@@ -40,8 +40,8 @@ def login():
                 return flask.redirect('/')
             return flask.render_template('login.html')
         case 'POST':
-            login: str = flask.request.form.get('login')
-            senha: str = flask.request.form.get('senha')
+            login: str | None = flask.request.form.get('login')
+            senha: str | None = flask.request.form.get('senha')
             if not login or not senha:
                 flask.abort(400, 'Login e senha são obrigatórios')
             con: sqlite3.Connection = sqlite3.connect(
@@ -71,8 +71,8 @@ def registrar():
                 return flask.redirect('/')
             return flask.render_template('registro.html')
         case 'POST':
-            login: str = flask.request.form.get('login')
-            senha: str = flask.request.form.get('senha')
+            login: str | None = flask.request.form.get('login')
+            senha: str | None = flask.request.form.get('senha')
             if not login or not senha:
                 flask.abort(400, 'Login e senha são obrigatórios')
             hash: str = pbkdf2_sha256.hash(senha)

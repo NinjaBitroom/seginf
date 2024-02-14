@@ -1,10 +1,11 @@
-import flask
-import sqlite3
-from passlib.hash import pbkdf2_sha256
-import typing
-import click
 import os
+import sqlite3
+import typing
 from os import path
+
+import click
+import flask
+from passlib.hash import pbkdf2_sha256
 from werkzeug import exceptions
 
 type papeis = typing.Literal['admin', 'comum']
@@ -28,7 +29,7 @@ con.close()
 
 
 @app.cli.command()
-def admin():
+def add_admin():
     """Adiciona um usuário admin no banco de dados."""
     login: str = click.prompt('Login', type=str)
     senha: str = pbkdf2_sha256.hash(
@@ -63,8 +64,8 @@ def login():
                 return flask.redirect('/')
             return flask.render_template('login.html')
         case 'POST':
-            login: str = flask.request.form.get('login')
-            senha: str = flask.request.form.get('senha')
+            login: str | None = flask.request.form.get('login')
+            senha: str | None = flask.request.form.get('senha')
             if not login or not senha:
                 flask.abort(400, 'Login e senha são obrigatórios')
             con: sqlite3.Connection = sqlite3.connect(
@@ -94,16 +95,16 @@ def login():
 
 @app.route('/registro', methods=('POST', 'GET'))
 def registrar():
-    papel_sessao: papeis = flask.session.get('papel')
+    papel_sessao: papeis | None = flask.session.get('papel')
     if papel_sessao != 'admin':
         flask.abort(403, 'Acesso negado')
     match flask.request.method:
         case 'GET':
             return flask.render_template('registro.html')
         case 'POST':
-            login: str = flask.request.form.get('login')
-            senha: str = flask.request.form.get('senha')
-            papel: str = flask.request.form.get('papel')
+            login: str | None = flask.request.form.get('login')
+            senha: str | None = flask.request.form.get('senha')
+            papel: str | None = flask.request.form.get('papel')
             if not login or not senha or not papel:
                 flask.abort(400, 'Todos os campos são obrigatórios')
             hash: str = pbkdf2_sha256.hash(senha)
@@ -140,7 +141,7 @@ def logout():
 @app.route('/admin')
 def admin():
     logado: bool = flask.session.get('logado', False)
-    papel: papeis = flask.session.get('papel')
+    papel: papeis | None = flask.session.get('papel')
     if (not logado):
         return flask.redirect('/login')
     if papel != 'admin':

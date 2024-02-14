@@ -13,10 +13,25 @@ requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.optional-dependencies]
+dev = [
+    "pyright>=1.1.350",
+    "isort>=5.13.2",
+]
+
+[tool.pdm]
+distribution = false
+
 [tool.pdm.scripts]
 at1 = "flask --debug -A at1 run"
 at2 = "flask --debug -A at2 run"
 at3 = "flask --debug -A at3 run"
 
-[tool.pdm]
-distribution = false
+[tool.pyright]
+pythonVersion = "3.12"
+pythonPlatform = "All"
+typeCheckingMode = "basic"
+
+[tool.isort]
+py_version = "312"
+skip_gitignore = true
