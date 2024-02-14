@@ -5,6 +5,7 @@ import typing
 import click
 import os
 from os import path
+from werkzeug import exceptions
 
 type papeis = typing.Literal['admin', 'comum']
 
@@ -155,5 +156,9 @@ def perfil():
     return flask.render_template('perfil.html')
 
 
-if __name__ == '__main__':
-    app.run()
+@app.errorhandler(Exception)
+def tratar_erro(e: Exception):
+    flask.current_app.logger.exception(e)
+    if isinstance(e, exceptions.HTTPException):
+        return flask.render_template('erro.html', erro=e), (e.code or 500)
+    return flask.render_template('erro.html', erro=e), 500

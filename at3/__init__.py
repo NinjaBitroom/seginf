@@ -4,6 +4,7 @@ from passlib.hash import pbkdf2_sha256
 import typing
 import os
 from os import path
+from werkzeug import exceptions
 
 type tipos = typing.Literal['corrente', 'poupanca']
 type tupla_conta = tuple[int, tipos, int, float]
@@ -232,5 +233,9 @@ def transferencia():
     return flask.redirect('/')
 
 
-if __name__ == '__main__':
-    app.run()
+@app.errorhandler(Exception)
+def tratar_erro(e: Exception):
+    flask.current_app.logger.exception(e)
+    if isinstance(e, exceptions.HTTPException):
+        return flask.render_template('erro.html', erro=e), (e.code or 500)
+    return flask.render_template('erro.html', erro=e), 500

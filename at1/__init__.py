@@ -3,6 +3,8 @@ import sqlite3
 import os
 from os import path
 from passlib.hash import pbkdf2_sha256
+from werkzeug import exceptions
+
 
 app: flask.Flask = flask.Flask(__name__)
 app.secret_key = 'segredo'
@@ -101,5 +103,9 @@ def logout():
     return flask.redirect('/login')
 
 
-if __name__ == '__main__':
-    app.run()
+@app.errorhandler(Exception)
+def tratar_erro(e: Exception):
+    flask.current_app.logger.exception(e)
+    if isinstance(e, exceptions.HTTPException):
+        return flask.render_template('erro.html', erro=e), (e.code or 500)
+    return flask.render_template('erro.html', erro=e), 500
