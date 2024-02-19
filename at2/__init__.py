@@ -49,18 +49,18 @@ def add_admin():
 
 @app.route('/')
 def index():
-    logado: bool = flask.session.get('logado', False)
-    if not logado:
+    login: str | None = flask.session.get('login')
+    if login is None:
         return flask.redirect('/login')
-    return flask.render_template('index.html')
+    return flask.render_template('index.html', login=login)
 
 
 @app.route('/login', methods=('POST', 'GET'))
 def login():
     match flask.request.method:
         case 'GET':
-            logado: bool = flask.session.get('logado', False)
-            if logado:
+            login: str | None = flask.session.get('login')
+            if login is not None:
                 return flask.redirect('/')
             return flask.render_template('login.html')
         case 'POST':
@@ -79,8 +79,7 @@ def login():
             cur.close()
             con.close()
             if usuario and pbkdf2_sha256.verify(senha, usuario[0]):
-                flask.session['logado'] = True
-                flask.session['papel'] = usuario[1]
+                flask.session['login'] = login
                 match usuario[1]:
                     case 'admin':
                         return flask.redirect('/admin')
@@ -95,8 +94,23 @@ def login():
 
 @app.route('/registro', methods=('POST', 'GET'))
 def registrar():
-    papel_sessao: papeis | None = flask.session.get('papel')
-    if papel_sessao != 'admin':
+    login: str | None = flask.session.get('login')
+    if login is None:
+        flask.abort(
+            403,
+            'Acesso negado, contate o administrador para registrar usuários'
+        )
+    con: sqlite3.Connection = sqlite3.connect(
+        path.join(app.instance_path, 'at2.db')
+    )
+    cur: sqlite3.Cursor = con.execute(
+        "SELECT papel FROM login WHERE login = ?",
+        (login,)
+    )
+    papel: str | None = cur.fetchone()[0]
+    cur.close()
+    con.close()
+    if papel != 'admin':
         flask.abort(403, 'Acesso negado')
     match flask.request.method:
         case 'GET':
@@ -104,7 +118,7 @@ def registrar():
         case 'POST':
             login: str | None = flask.request.form.get('login')
             senha: str | None = flask.request.form.get('senha')
-            papel: str | None = flask.request.form.get('papel')
+            papel = flask.request.form.get('papel')
             if not login or not senha or not papel:
                 flask.abort(400, 'Todos os campos são obrigatórios')
             hash: str = pbkdf2_sha256.hash(senha)
@@ -123,8 +137,8 @@ def registrar():
                 cur.close()
             finally:
                 con.close()
-            return flask.render_template_string(
-                'Registro de {{ login }} realizado com sucesso',
+            return flask.render_template(
+                'sucesso.html',
                 login=login
             )
         case _:
@@ -133,28 +147,36 @@ def registrar():
 
 @app.route('/logout')
 def logout():
-    flask.session.pop('logado')
-    flask.session.pop('papel')
+    flask.session.pop('login')
     return flask.redirect('/login')
 
 
 @app.route('/admin')
 def admin():
-    logado: bool = flask.session.get('logado', False)
-    papel: papeis | None = flask.session.get('papel')
-    if (not logado):
+    login: str | None = flask.session.get('login')
+    con: sqlite3.Connection = sqlite3.connect(
+        path.join(app.instance_path, 'at2.db')
+    )
+    cur: sqlite3.Cursor = con.execute(
+        "SELECT papel FROM login WHERE login = ?",
+        (login,)
+    )
+    papel: str | None = cur.fetchone()[0]
+    cur.close()
+    con.close()
+    if login is None:
         return flask.redirect('/login')
     if papel != 'admin':
         flask.abort(403, 'Acesso negado')
-    return flask.render_template('admin.html')
+    return flask.render_template('admin.html', login=login)
 
 
 @app.route('/perfil')
 def perfil():
-    logado: bool = flask.session.get('logado', False)
-    if not logado:
+    login: str | None = flask.session.get('login')
+    if login is None:
         return flask.redirect('/login')
-    return flask.render_template('perfil.html')
+    return flask.render_template('perfil.html', login=login)
 
 
 @app.errorhandler(Exception)
