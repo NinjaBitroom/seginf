@@ -206,12 +206,16 @@ def transferencia():
         saldo: float = cur.fetchone()[0]
         cur.execute("SELECT numero FROM conta WHERE login = ?", (login,))
         numero: int = cur.fetchone()[0]
-        print(numero, num_destino)
-        print(type(numero), type(num_destino))
         if numero == num_destino:
             flask.abort(400, 'Conta destino inválida')
         if saldo < valor:
             flask.abort(400, 'Saldo insuficiente')
+        cur.execute(
+            "SELECT * FROM conta WHERE numero = ?",
+            (num_destino,)
+        )
+        if not cur.fetchone():
+            flask.abort(400, 'Conta destino inválida')
         cur.execute(
             "UPDATE conta SET saldo = saldo - ? WHERE numero = ?",
             (valor, numero)
