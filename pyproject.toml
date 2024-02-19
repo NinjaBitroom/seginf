@@ -20,6 +20,7 @@ distribution = false
 at1 = "flask --debug -A at1 run"
 at2 = "flask --debug -A at2 run"
 at3 = "flask --debug -A at3 run"
+export = "pdm export -o requirements.txt --prod --no-hashes"
 
 [tool.pdm.dev-dependencies]
 all = [
