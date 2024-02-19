@@ -48,9 +48,8 @@ con.close()
 
 @app.route('/')
 def index():
-    logado: bool = flask.session.get('logado', False)
-    login: str = flask.session.get('login', '...')
-    if not logado:
+    login: str | None = flask.session.get('login')
+    if login is None:
         return flask.redirect('/login')
     with sqlite3.connect(path.join(app.instance_path, 'at3.db')) as con:
         cur = con.execute(
@@ -66,8 +65,8 @@ def index():
 def login():
     match flask.request.method:
         case 'GET':
-            logado: bool = flask.session.get('logado', False)
-            if logado:
+            login: str | None = flask.session.get('login')
+            if login is not None:
                 return flask.redirect('/')
             return flask.render_template('login.html')
         case 'POST':
@@ -86,7 +85,6 @@ def login():
             cur.close()
             con.close()
             if senha_hash and pbkdf2_sha256.verify(senha, senha_hash[0]):
-                flask.session['logado'] = True
                 flask.session['login'] = login
                 return flask.redirect('/')
             flask.abort(401, 'Login ou senha inválidos')
@@ -98,8 +96,8 @@ def login():
 def registrar():
     match flask.request.method:
         case 'GET':
-            logado: bool = flask.session.get('logado', False)
-            if logado:
+            login: str | None = flask.session.get('login')
+            if login is not None:
                 return flask.redirect('/')
             return flask.render_template('registro.html')
         case 'POST':
@@ -128,7 +126,6 @@ def registrar():
                 cur.close()
             finally:
                 con.close()
-            flask.session['logado'] = True
             flask.session['login'] = login
             return flask.redirect('/')
         case _:
@@ -137,7 +134,6 @@ def registrar():
 
 @app.route('/logout')
 def logout():
-    flask.session.pop('logado')
     flask.session.pop('login')
     return flask.redirect('/login')
 
