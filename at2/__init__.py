@@ -10,77 +10,72 @@ from werkzeug import exceptions
 
 type papeis = typing.Literal['admin', 'comum']
 
-app: flask.Flask = flask.Flask(__name__)
-app.secret_key = 'segredo'
-os.makedirs(app.instance_path, exist_ok=True)
-con: sqlite3.Connection = sqlite3.connect(
-    path.join(app.instance_path, 'at2.db')
-)
-cur: sqlite3.Cursor = con.execute("""
-    CREATE TABLE IF NOT EXISTS login(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        login TEXT NOT NULL UNIQUE,
-        senha TEXT NOT NULL,
-        papel TEXT CHECK(papel IN ('admin', 'comum')) NOT NULL
-    )
-""")
-cur.close()
-con.close()
+APP: typing.Final[flask.Flask] = flask.Flask(__name__)
+APP.secret_key = 'segredo'
+os.makedirs(APP.instance_path, exist_ok=True)
+BANCO_DE_DADOS: typing.Final[str] = path.join(APP.instance_path, 'at2.db')
+with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+    CONNECTION.execute("""
+        CREATE TABLE IF NOT EXISTS login(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            login TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL,
+            papel TEXT CHECK(papel IN ('admin', 'comum')) NOT NULL
+        )
+    """).close()
 
 
-@app.cli.command()
+@APP.cli.command()
 def add_admin():
     """Adiciona um usuário admin no banco de dados."""
-    login: str = click.prompt('Login', type=str)
-    senha: str = pbkdf2_sha256.hash(
+    LOGIN: typing.Final[str] = click.prompt('Login', type=str)
+    SENHA: typing.Final[str] = pbkdf2_sha256.hash(
         click.prompt('Senha', hide_input=True, type=str)
     )
-    con: sqlite3.Connection = sqlite3.connect(
-        path.join(app.instance_path, 'at2.db')
-    )
-    cur: sqlite3.Cursor = con.execute(
-        "INSERT INTO login(login, senha, papel) VALUES(?, ?, ?)",
-        (login, senha, 'admin')
-    )
-    con.commit()
-    cur.close()
-    con.close()
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+        CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+            "INSERT INTO login(login, senha, papel) VALUES(?, ?, ?)",
+            (LOGIN, SENHA, 'admin')
+        )
+        CONNECTION.commit()
+        CURSOR.close()
 
 
-@app.route('/')
+@APP.route('/')
 def index():
-    login: str | None = flask.session.get('login')
-    if login is None:
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get('login'))
+    if LOGIN is None:
         return flask.redirect('/login')
-    return flask.render_template('index.html', login=login)
+    return flask.render_template('index.html', login=LOGIN)
 
 
-@app.route('/login', methods=('POST', 'GET'))
+@APP.route('/login', methods=('POST', 'GET'))
 def login():
     match flask.request.method:
         case 'GET':
-            login: str | None = flask.session.get('login')
-            if login is not None:
+            SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+                str | None, flask.session.get('login'))
+            if SESSION_LOGIN is not None:
                 return flask.redirect('/')
             return flask.render_template('login.html')
         case 'POST':
-            login: str | None = flask.request.form.get('login')
-            senha: str | None = flask.request.form.get('senha')
-            if not login or not senha:
+            FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
+                'login', type=str)
+            FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
+                'senha', type=str)
+            if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, 'Login e senha são obrigatórios')
-            con: sqlite3.Connection = sqlite3.connect(
-                path.join(app.instance_path, 'at2.db')
-            )
-            cur: sqlite3.Cursor = con.execute(
-                "SELECT senha, papel FROM login WHERE login = ?",
-                (login,)
-            )
-            usuario: tuple[str, papeis] = cur.fetchone()
-            cur.close()
-            con.close()
-            if usuario and pbkdf2_sha256.verify(senha, usuario[0]):
-                flask.session['login'] = login
-                match usuario[1]:
+            with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+                CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+                    "SELECT senha, papel FROM login WHERE login = ?",
+                    (FORM_LOGIN,)
+                )
+                USUARIO: typing.Final[tuple[str, papeis]] = CURSOR.fetchone()
+                CURSOR.close()
+            if USUARIO and pbkdf2_sha256.verify(FORM_SENHA, USUARIO[0]):
+                flask.session['login'] = FORM_LOGIN
+                match USUARIO[1]:
                     case 'admin':
                         return flask.redirect('/admin')
                     case 'comum':
@@ -92,96 +87,94 @@ def login():
             flask.abort(405, 'Método não permitido')
 
 
-@app.route('/registro', methods=('POST', 'GET'))
+@APP.route('/registro', methods=('POST', 'GET'))
 def registrar():
-    login: str | None = flask.session.get('login')
-    if login is None:
+    SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get('login'))
+    if SESSION_LOGIN is None:
         flask.abort(
             403,
             'Acesso negado, contate o administrador para registrar usuários'
         )
-    con: sqlite3.Connection = sqlite3.connect(
-        path.join(app.instance_path, 'at2.db')
-    )
-    cur: sqlite3.Cursor = con.execute(
-        "SELECT papel FROM login WHERE login = ?",
-        (login,)
-    )
-    papel: str | None = cur.fetchone()[0]
-    cur.close()
-    con.close()
-    if papel != 'admin':
+    with sqlite3.connect(BANCO_DE_DADOS) as connection:
+        cursor: sqlite3.Cursor = connection.execute(
+            "SELECT papel FROM login WHERE login = ?",
+            (SESSION_LOGIN,)
+        )
+        SESSION_PAPEL: typing.Final[str | None] = cursor.fetchone()[0]
+        cursor.close()
+    if SESSION_PAPEL != 'admin':
         flask.abort(403, 'Acesso negado')
     match flask.request.method:
         case 'GET':
             return flask.render_template('registro.html')
         case 'POST':
-            login: str | None = flask.request.form.get('login')
-            senha: str | None = flask.request.form.get('senha')
-            papel = flask.request.form.get('papel')
-            if not login or not senha or not papel:
+            FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
+                'login', type=str)
+            FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
+                'senha', type=str)
+            FORM_PAPEL: typing.Final[str | None] = flask.request.form.get(
+                'papel', type=str)
+            if not FORM_LOGIN or not FORM_SENHA or not FORM_PAPEL:
                 flask.abort(400, 'Todos os campos são obrigatórios')
-            hash: str = pbkdf2_sha256.hash(senha)
-            con: sqlite3.Connection = sqlite3.connect(
-                path.join(app.instance_path, 'at2.db')
-            )
+            HASH: typing.Final[str] = pbkdf2_sha256.hash(FORM_SENHA)
+            connection: sqlite3.Connection = sqlite3.connect(BANCO_DE_DADOS)
             try:
-                cur: sqlite3.Cursor = con.execute(
+                cursor: sqlite3.Cursor = connection.execute(
                     "INSERT INTO login(login, senha, papel) VALUES(?, ?, ?)",
-                    (login, hash, papel)
+                    (FORM_LOGIN, HASH, FORM_PAPEL)
                 )
             except sqlite3.IntegrityError:
                 flask.abort(400, 'Erro ao inserir registro, tente novamente')
             else:
-                con.commit()
-                cur.close()
+                connection.commit()
+                cursor.close()
             finally:
-                con.close()
+                connection.close()
             return flask.render_template(
                 'sucesso.html',
-                login=login
+                login=FORM_LOGIN
             )
         case _:
             flask.abort(405, 'Método não permitido')
 
 
-@app.route('/logout')
+@APP.route('/logout')
 def logout():
     flask.session.pop('login')
     return flask.redirect('/login')
 
 
-@app.route('/admin')
+@APP.route('/admin')
 def admin():
-    login: str | None = flask.session.get('login')
-    con: sqlite3.Connection = sqlite3.connect(
-        path.join(app.instance_path, 'at2.db')
-    )
-    cur: sqlite3.Cursor = con.execute(
-        "SELECT papel FROM login WHERE login = ?",
-        (login,)
-    )
-    papel: str | None = cur.fetchone()[0]
-    cur.close()
-    con.close()
-    if login is None:
+    SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get('login'))
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECITON:
+        CURSOR: typing.Final[sqlite3.Cursor] = CONNECITON.execute(
+            "SELECT papel FROM login WHERE login = ?",
+            (SESSION_LOGIN,)
+        )
+        PAPEL: typing.Final[str | None] = CURSOR.fetchone()[0]
+        CURSOR.close()
+    if SESSION_LOGIN is None:
         return flask.redirect('/login')
-    if papel != 'admin':
+    if PAPEL != 'admin':
         flask.abort(403, 'Acesso negado')
-    return flask.render_template('admin.html', login=login)
+    return flask.render_template('admin.html', login=SESSION_LOGIN)
 
 
-@app.route('/perfil')
+@APP.route('/perfil')
 def perfil():
-    login: str | None = flask.session.get('login')
-    if login is None:
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get('login'))
+    if LOGIN is None:
         return flask.redirect('/login')
-    return flask.render_template('perfil.html', login=login)
+    return flask.render_template('perfil.html', login=LOGIN)
 
 
-@app.errorhandler(Exception)
-def tratar_erro(e: Exception):
-    flask.current_app.logger.exception(e)
-    if isinstance(e, exceptions.HTTPException):
-        return flask.render_template('erro.html', erro=e), (e.code or 500)
-    return flask.render_template('erro.html', erro=e), 500
+@APP.errorhandler(Exception)
+def tratar_erro(erro: Exception):
+    flask.current_app.logger.exception(erro)
+    if isinstance(erro, exceptions.HTTPException):
+        return flask.render_template('erro.html', erro=erro), (erro.code or 500)
+    return flask.render_template('erro.html', erro=erro), 500

@@ -1,3 +1,3 @@
 import at1
 
-at1.app.run()
+at1.APP.run()

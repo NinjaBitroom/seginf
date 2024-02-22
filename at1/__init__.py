@@ -1,110 +1,114 @@
 import os
 import sqlite3
+import typing
 from os import path
 
 import flask
 from passlib.hash import pbkdf2_sha256
 from werkzeug import exceptions
 
-app: flask.Flask = flask.Flask(__name__)
-app.secret_key = "segredo"
-os.makedirs(app.instance_path, exist_ok=True)
-con: sqlite3.Connection = sqlite3.connect(
-    path.join(app.instance_path, "at1.db"))
-cur: sqlite3.Cursor = con.execute(
+APP: typing.Final[flask.Flask] = flask.Flask(__name__)
+APP.secret_key = "segredo"
+os.makedirs(APP.instance_path, exist_ok=True)
+BANCO_DE_DADOS: typing.Final[str] = path.join(APP.instance_path, "at1.db")
+
+
+with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+    CONNECTION.execute(
+        """
+        CREATE TABLE IF NOT EXISTS login(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            login TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL
+        )
     """
-    CREATE TABLE IF NOT EXISTS login(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        login TEXT NOT NULL UNIQUE,
-        senha TEXT NOT NULL
-    )
-"""
-)
-cur.close()
-con.close()
+    ).close()
 
 
-@app.route("/")
+@APP.route("/")
 def index():
-    login: str | None = flask.session.get("login")
-    if login is None:
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get("login"))
+    if LOGIN is None:
         return flask.redirect("/login")
-    return flask.render_template("index.html", login=login)
+    return flask.render_template("index.html", login=LOGIN)
 
 
-@app.route("/login", methods=("POST", "GET"))
+@APP.route("/login", methods=("POST", "GET"))
 def login():
     match flask.request.method:
         case "GET":
-            login: str | None = flask.session.get("login")
-            if login is not None:
+            SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+                str | None, flask.session.get("login"))
+            if SESSION_LOGIN is not None:
                 return flask.redirect("/")
             return flask.render_template("login.html")
         case "POST":
-            login: str | None = flask.request.form.get("login")
-            senha: str | None = flask.request.form.get("senha")
-            if not login or not senha:
+            FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
+                "login", type=str)
+            FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
+                "senha", type=str)
+            if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, "Login e senha são obrigatórios")
-            con: sqlite3.Connection = sqlite3.connect(
-                path.join(app.instance_path, "at1.db")
-            )
-            cur: sqlite3.Cursor = con.execute(
-                "SELECT senha FROM login WHERE login = ?", (login,)
-            )
-            senha_hash: tuple[str] = cur.fetchone()
-            cur.close()
-            con.close()
-            if senha_hash and pbkdf2_sha256.verify(senha, senha_hash[0]):
-                flask.session["login"] = login
+            with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+                CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+                    "SELECT senha FROM login WHERE login = ?", (FORM_LOGIN,)
+                )
+                HASH_SENHA: typing.Final[tuple[str]] = CURSOR.fetchone()
+                CURSOR.close()
+            if HASH_SENHA and pbkdf2_sha256.verify(FORM_SENHA, HASH_SENHA[0]):
+                flask.session["login"] = FORM_LOGIN
                 return flask.redirect("/")
             flask.abort(401, "Login ou senha inválidos")
         case _:
             flask.abort(405, "Método não permitido")
 
 
-@app.route("/registro", methods=("POST", "GET"))
+@APP.route("/registro", methods=("POST", "GET"))
 def registrar():
     match flask.request.method:
         case "GET":
-            login: str | None = flask.session.get("login")
-            if login is not None:
+            SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+                str | None, flask.session.get("login"))
+            if SESSION_LOGIN is not None:
                 return flask.redirect("/")
             return flask.render_template("registro.html")
         case "POST":
-            login: str | None = flask.request.form.get("login")
-            senha: str | None = flask.request.form.get("senha")
-            if not login or not senha:
+            FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
+                "login", type=str)
+            FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
+                "senha", type=str)
+            if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, "Login e senha são obrigatórios")
-            hash: str = pbkdf2_sha256.hash(senha)
-            con: sqlite3.Connection = sqlite3.connect(
-                path.join(app.instance_path, "at1.db")
-            )
+            HASH: typing.Final[str] = pbkdf2_sha256.hash(FORM_SENHA)
+            CONNECTION: typing.Final[sqlite3.Connection] = sqlite3.connect(
+                BANCO_DE_DADOS)
             try:
-                cur = con.execute(
-                    "INSERT INTO login(login, senha) VALUES(?, ?)", (login, hash)
+                CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+                    "INSERT INTO login(login, senha) VALUES(?, ?)", (FORM_LOGIN, HASH)
                 )
             except sqlite3.IntegrityError:
                 flask.abort(400, "Login já existe")
             else:
-                con.commit()
-                cur.close()
+                CONNECTION.commit()
+                CURSOR.close()
             finally:
-                con.close()
-            flask.session["login"] = login
+                CONNECTION.close()
+            flask.session["login"] = FORM_LOGIN
             return flask.redirect("/")
         case _:
             flask.abort(405, "Método não permitido")
 
 
-@app.route("/logout")
+@APP.route("/logout")
 def logout():
     flask.session.pop("login")
     return flask.redirect("/login")
 
 
-@app.errorhandler(Exception)
-def tratar_erro(e: Exception):
-    flask.current_app.logger.exception(e)
-    if isinstance(e, exceptions.HTTPException):
-        return flask.render_template("erro.html", erro=e), (e.code or 500)
-    return flask.render_template("erro.html", erro=e), 500
+@APP.errorhandler(Exception)
+def tratar_erro(erro: Exception):
+    flask.current_app.logger.exception(erro)
+    if isinstance(erro, exceptions.HTTPException):
+        return flask.render_template("erro.html", erro=erro), (erro.code or 500)
+    return flask.render_template("erro.html", erro=erro), 500
