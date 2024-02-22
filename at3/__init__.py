@@ -116,8 +116,9 @@ def registrar():
                 cur: sqlite3.Cursor = con.execute("""INSERT INTO
                     conta(login, senha, tipo, agencia, saldo_inicial, saldo)
                     VALUES(?, ?, ?, ?, ?, ?)""",
-                    (login, hash, tipo, agencia, saldo, saldo),
-                )
+                                                  (login, hash, tipo,
+                                                   agencia, saldo, saldo),
+                                                  )
             except sqlite3.IntegrityError as e:
                 print(e)
                 flask.abort(400, 'Erro no registro')

@@ -8,6 +8,7 @@ authors = [
 dependencies = [
     "flask>=3.0.2",
     "passlib>=1.7.4",
+    "pre-commit>=3.6.2",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -26,12 +27,15 @@ export = "pdm export -o requirements.txt --prod --no-hashes"
 all = [
     "pyright>=1.1.350",
     "isort>=5.13.2",
+    "autopep8>=2.0.4",
 ]
 
 [tool.pyright]
 pythonVersion = "3.12"
 pythonPlatform = "All"
 typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
 
 [tool.isort]
 py_version = "312"
