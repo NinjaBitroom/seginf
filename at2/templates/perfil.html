@@ -3,5 +3,5 @@
 {% block principal %}
     <h1>Seu perfil</h1>
     <p>Bem-vindo! {{ login }}</p>
-    <a href="/logout">Deslogar</a>
+    <a href="{{ url_for('logout') }}">Deslogar</a>
 {% endblock %}
