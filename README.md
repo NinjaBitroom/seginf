@@ -10,7 +10,7 @@ Exercícios de Segurança da Informação
 
 Crie o ambiente virtual
 
-```sh
+``` sh
 python3 -m venv .venv
 ```
 
@@ -18,7 +18,7 @@ Ative:
 
 Linux:
 
-```sh
+``` sh
 . .venv/bin/activate
 ```
 
@@ -32,15 +32,15 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 E ative:
 
-```sh
-& .venv/Scripts/activate.ps1
+``` ps
+.venv/Scripts/activate
 ```
 
 Mais detalhe em: <https://learn.microsoft.com/pt-br/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.3>
 
 Instale os pacotes:
 
-```sh
+``` sh
 python3 -m pip install -r requirements.txt
 ```
 
@@ -50,7 +50,7 @@ Existem várias formas de executar o servidor:
 
 Python:
 
-```sh
+``` sh
 python3 -m at1
 ```
 
