@@ -33,7 +33,7 @@ all = [
 [tool.pyright]
 pythonVersion = "3.12"
 pythonPlatform = "All"
-typeCheckingMode = "basic"
+typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
 

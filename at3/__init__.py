@@ -50,7 +50,8 @@ with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
 @APP.route("/")
 def index():
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     if LOGIN is None:
         return flask.redirect("/login")
@@ -68,7 +69,8 @@ def login():
     match flask.request.method:
         case "GET":
             SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-                str | None, flask.session.get("login")
+                str | None,
+                flask.session.get("login"),  # type: ignore
             )
             if SESSION_LOGIN is not None:
                 return flask.redirect("/")
@@ -101,7 +103,8 @@ def registrar():
     match flask.request.method:
         case "GET":
             SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-                str | None, flask.session.get("login")
+                str | None,
+                flask.session.get("login"),  # type: ignore
             )
             if SESSION_LOGIN is not None:
                 return flask.redirect("/")
@@ -150,7 +153,7 @@ def registrar():
 
 @APP.route("/logout")
 def logout():
-    flask.session.pop("login")
+    flask.session.pop("login")  # type: ignore
     return flask.redirect("/login")
 
 
@@ -160,7 +163,8 @@ def saque():
     if VALOR <= 0:
         flask.abort(400, "Valor inválido")
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
         CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
@@ -190,7 +194,8 @@ def deposito():
     if VALOR <= 0:
         flask.abort(400, "Valor inválido")
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
         CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
@@ -215,7 +220,8 @@ def transferencia():
     if VALOR <= 0:
         flask.abort(400, "Valor inválido")
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
         CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(

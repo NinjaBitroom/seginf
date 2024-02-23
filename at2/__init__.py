@@ -45,7 +45,8 @@ def add_admin():
 @APP.route("/")
 def index():
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     if LOGIN is None:
         return flask.redirect("/login")
@@ -57,7 +58,8 @@ def login():
     match flask.request.method:
         case "GET":
             SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-                str | None, flask.session.get("login")
+                str | None,
+                flask.session.get("login"),  # type: ignore
             )
             if SESSION_LOGIN is not None:
                 return flask.redirect("/")
@@ -84,8 +86,6 @@ def login():
                         return flask.redirect("/admin")
                     case "comum":
                         return flask.redirect("/perfil")
-                    case _:
-                        return flask.redirect("/")
             flask.abort(401, "Login ou senha inválidos")
         case _:
             flask.abort(405, "Método não permitido")
@@ -94,7 +94,8 @@ def login():
 @APP.route("/registro", methods=("POST", "GET"))
 def registrar():
     SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     if SESSION_LOGIN is None:
         flask.abort(
@@ -144,14 +145,15 @@ def registrar():
 
 @APP.route("/logout")
 def logout():
-    flask.session.pop("login")
+    flask.session.pop("login")  # type: ignore
     return flask.redirect("/login")
 
 
 @APP.route("/admin")
 def admin():
     SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     with sqlite3.connect(BANCO_DE_DADOS) as CONNECITON:
         CURSOR: typing.Final[sqlite3.Cursor] = CONNECITON.execute(
@@ -169,7 +171,8 @@ def admin():
 @APP.route("/perfil")
 def perfil():
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login")
+        str | None,
+        flask.session.get("login"),  # type: ignore
     )
     if LOGIN is None:
         return flask.redirect("/login")
