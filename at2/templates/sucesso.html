@@ -1,14 +1,5 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pico.min.css') }}">
-    <title>Sucesso ao registrar!</title>
-</head>
-<body>
-    <main class="container">
-        <p>Registro de {{ login }} realizado com sucesso</p>
-    </main>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block titulo %}Sucesso{% endblock %}
+{% block principal %}
+    <p>Registro de {{ login }} realizado com sucesso</p>
+{% endblock %}

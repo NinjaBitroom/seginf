@@ -1,15 +1,6 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pico.min.css') }}">
-    <title>Início</title>
-</head>
-<body>
-    <main class="container">
-        <h1>Parabéns {{ login }}! Você está autenticado!</h1>
-        <a href="/logout">Deslogar</a>
-    </main>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block titulo %}Início{% endblock %}
+{% block principal %}
+    <h1>Parabéns {{ login }}! Você está autenticado!</h1>
+    <a href="/logout">Deslogar</a>
+{% endblock %}

@@ -1,40 +1,31 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pico.min.css') }}">
-    <title>Document</title>
-</head>
-<body>
-    <main class="container">
-        <h1>Parabéns! Você está autenticado!</h1>
-        <a href="/logout">Deslogar</a>
-        <hr>
-        <h2>Detalhes da Conta</h2>
-        <p>Número da conta: {{ conta[0] }}</p>
-        <p>Tipo da conta: {{ conta[1] }}</p>
-        <p>Agência: {{ conta[2] }}</p>
-        <p>Saldo: {{ conta[3] }}</p>
-        <hr>
-        <h2>Depositar</h2>
-        <form action="/depositar" method="post">
-            <input type="number" name="valor" id="valor" placeholder="Valor" required>
-            <button type="submit">Depositar</button>
-        </form>
-        <hr>
-        <h2>Sacar</h2>
-        <form action="/sacar" method="post">
-            <input type="number" name="valor" id="valor" placeholder="Valor" required>
-            <button type="submit">Sacar</button>
-        </form>
-        <hr>
-        <h2>Fazer transferência</h2>
-        <form action="/transferir" method="post">
-            <input type="number" name="destino" id="destino" placeholder="Número da conta destino" required>
-            <input type="number" name="valor" id="valor" placeholder="Valor" required>
-            <button type="submit">Transferir</button>
-        </form>
-    </main>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block titulo %}Início{% endblock %}
+{% block principal %}
+    <h1>Parabéns! Você está autenticado!</h1>
+    <a href="/logout">Deslogar</a>
+    <hr>
+    <h2>Detalhes da Conta</h2>
+    <p>Número da conta: {{ conta[0] }}</p>
+    <p>Tipo da conta: {{ conta[1] }}</p>
+    <p>Agência: {{ conta[2] }}</p>
+    <p>Saldo: {{ conta[3] }}</p>
+    <hr>
+    <h2>Depositar</h2>
+    <form action="/depositar" method="post">
+        <input type="number" name="valor" id="valor" placeholder="Valor" required>
+        <button type="submit">Depositar</button>
+    </form>
+    <hr>
+    <h2>Sacar</h2>
+    <form action="/sacar" method="post">
+        <input type="number" name="valor" id="valor" placeholder="Valor" required>
+        <button type="submit">Sacar</button>
+    </form>
+    <hr>
+    <h2>Fazer transferência</h2>
+    <form action="/transferir" method="post">
+        <input type="number" name="destino" id="destino" placeholder="Número da conta destino" required>
+        <input type="number" name="valor" id="valor" placeholder="Valor" required>
+        <button type="submit">Transferir</button>
+    </form>
+{% endblock %}
