@@ -28,7 +28,8 @@ with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
 @APP.route("/")
 def index():
     LOGIN: typing.Final[str | None] = typing.cast(
-        str | None, flask.session.get("login"))
+        str | None, flask.session.get("login")
+    )
     if LOGIN is None:
         return flask.redirect("/login")
     return flask.render_template("index.html", login=LOGIN)
@@ -39,15 +40,18 @@ def login():
     match flask.request.method:
         case "GET":
             SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-                str | None, flask.session.get("login"))
+                str | None, flask.session.get("login")
+            )
             if SESSION_LOGIN is not None:
                 return flask.redirect("/")
             return flask.render_template("login.html")
         case "POST":
             FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
-                "login", type=str)
+                "login", type=str
+            )
             FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
-                "senha", type=str)
+                "senha", type=str
+            )
             if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, "Login e senha são obrigatórios")
             with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
@@ -69,20 +73,24 @@ def registrar():
     match flask.request.method:
         case "GET":
             SESSION_LOGIN: typing.Final[str | None] = typing.cast(
-                str | None, flask.session.get("login"))
+                str | None, flask.session.get("login")
+            )
             if SESSION_LOGIN is not None:
                 return flask.redirect("/")
             return flask.render_template("registro.html")
         case "POST":
             FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
-                "login", type=str)
+                "login", type=str
+            )
             FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
-                "senha", type=str)
+                "senha", type=str
+            )
             if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, "Login e senha são obrigatórios")
             HASH: typing.Final[str] = pbkdf2_sha256.hash(FORM_SENHA)
             CONNECTION: typing.Final[sqlite3.Connection] = sqlite3.connect(
-                BANCO_DE_DADOS)
+                BANCO_DE_DADOS
+            )
             try:
                 CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
                     "INSERT INTO login(login, senha) VALUES(?, ?)", (FORM_LOGIN, HASH)
