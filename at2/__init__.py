@@ -22,8 +22,7 @@ with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
             login TEXT NOT NULL UNIQUE,
             senha TEXT NOT NULL,
             papel TEXT CHECK(papel IN ('admin', 'comum')) NOT NULL
-        )
-    """
+        )"""
     ).close()
 
 

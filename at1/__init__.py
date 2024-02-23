@@ -20,8 +20,7 @@ with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             login TEXT NOT NULL UNIQUE,
             senha TEXT NOT NULL
-        )
-    """
+        )"""
     ).close()
 
 

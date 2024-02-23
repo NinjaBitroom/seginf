@@ -10,225 +10,246 @@ from werkzeug import exceptions
 type tipos = typing.Literal["corrente", "poupanca"]
 type tupla_conta = tuple[int, tipos, int, float]
 
-app: flask.Flask = flask.Flask(__name__)
-app.secret_key = "segredo"
-os.makedirs(app.instance_path, exist_ok=True)
-con: sqlite3.Connection = sqlite3.connect(path.join(app.instance_path, "at3.db"))
-cur: sqlite3.Cursor = con.cursor()
-cur.execute(
-    """
-    CREATE TABLE IF NOT EXISTS conta(
-        numero INTEGER PRIMARY KEY AUTOINCREMENT,
-        login TEXT NOT NULL UNIQUE,
-        senha TEXT NOT NULL,
-        tipo TEXT CHECK(tipo IN ('corrente', 'poupanca')) NOT NULL,
-        agencia INTEGER NOT NULL,
-        saldo_inicial REAL NOT NULL,
-        saldo REAL NOT NULL
-    )
-"""
-)
-cur.execute(
-    """
-    CREATE TABLE IF NOT EXISTS historico(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo TEXT CHECK(
-            tipo IN ('saque', 'deposito', 'transferencia')
-        ) NOT NULL,
-        valor REAL NOT NULL,
-        num_conta INTEGER NOT NULL,
-        num_conta_destino INTEGER,
-        FOREIGN KEY(num_conta) REFERENCES conta(numero),
-        FOREIGN KEY(num_conta_destino) REFERENCES conta(numero)
-    )
-"""
-)
-con.commit()
-cur.close()
-con.close()
+APP: typing.Final[flask.Flask] = flask.Flask(__name__)
+APP.secret_key = "segredo"
+os.makedirs(APP.instance_path, exist_ok=True)
+BANCO_DE_DADOS: typing.Final[str] = path.join(APP.instance_path, "at3.db")
 
 
-@app.route("/")
+with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+    CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.cursor()
+    CURSOR.execute(
+        """
+        CREATE TABLE IF NOT EXISTS conta(
+            numero INTEGER PRIMARY KEY AUTOINCREMENT,
+            login TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL,
+            tipo TEXT CHECK(tipo IN ('corrente', 'poupanca')) NOT NULL,
+            agencia INTEGER NOT NULL,
+            saldo_inicial REAL NOT NULL,
+            saldo REAL NOT NULL
+        )"""
+    )
+    CURSOR.execute(
+        """
+        CREATE TABLE IF NOT EXISTS historico(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tipo TEXT CHECK(
+                tipo IN ('saque', 'deposito', 'transferencia')
+            ) NOT NULL,
+            valor REAL NOT NULL,
+            num_conta INTEGER NOT NULL,
+            num_conta_destino INTEGER,
+            FOREIGN KEY(num_conta) REFERENCES conta(numero),
+            FOREIGN KEY(num_conta_destino) REFERENCES conta(numero)
+        )"""
+    )
+    CURSOR.close()
+
+
+@APP.route("/")
 def index():
-    login: str | None = flask.session.get("login")
-    if login is None:
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get("login")
+    )
+    if LOGIN is None:
         return flask.redirect("/login")
-    with sqlite3.connect(path.join(app.instance_path, "at3.db")) as con:
-        cur = con.execute(
-            "SELECT numero, tipo, agencia, saldo FROM conta WHERE login = ?", (login,)
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+        CURSOR: sqlite3.Cursor = CONNECTION.execute(
+            "SELECT numero, tipo, agencia, saldo FROM conta WHERE login = ?", (LOGIN,)
         )
-        conta: tupla_conta = cur.fetchone()
-        cur.close()
-    return flask.render_template("index.html", conta=conta)
+        CONTA: typing.Final[tupla_conta] = CURSOR.fetchone()
+        CURSOR.close()
+    return flask.render_template("index.html", conta=CONTA)
 
 
-@app.route("/login", methods=("POST", "GET"))
+@APP.route("/login", methods=("POST", "GET"))
 def login():
     match flask.request.method:
         case "GET":
-            login: str | None = flask.session.get("login")
-            if login is not None:
+            SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+                str | None, flask.session.get("login")
+            )
+            if SESSION_LOGIN is not None:
                 return flask.redirect("/")
             return flask.render_template("login.html")
         case "POST":
-            login: str | None = flask.request.form.get("login")
-            senha: str | None = flask.request.form.get("senha")
-            if not login or not senha:
+            FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
+                "login", type=str
+            )
+            FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
+                "senha", type=str
+            )
+            if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, "Login e senha são obrigatórios")
-            con: sqlite3.Connection = sqlite3.connect(
-                path.join(app.instance_path, "at3.db")
-            )
-            cur: sqlite3.Cursor = con.execute(
-                "SELECT senha FROM conta WHERE login = ?", (login,)
-            )
-            senha_hash: str = cur.fetchone()
-            cur.close()
-            con.close()
-            if senha_hash and pbkdf2_sha256.verify(senha, senha_hash[0]):
-                flask.session["login"] = login
+            with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+                CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+                    "SELECT senha FROM conta WHERE login = ?", (FORM_LOGIN,)
+                )
+                SENHA_HASH: typing.Final[str] = CURSOR.fetchone()
+                CURSOR.close()
+            if SENHA_HASH and pbkdf2_sha256.verify(FORM_SENHA, SENHA_HASH[0]):
+                flask.session["login"] = FORM_LOGIN
                 return flask.redirect("/")
             flask.abort(401, "Login ou senha inválidos")
         case _:
             flask.abort(405, "Método não permitido")
 
 
-@app.route("/registro", methods=("POST", "GET"))
+@APP.route("/registro", methods=("POST", "GET"))
 def registrar():
     match flask.request.method:
         case "GET":
-            login: str | None = flask.session.get("login")
-            if login is not None:
+            SESSION_LOGIN: typing.Final[str | None] = typing.cast(
+                str | None, flask.session.get("login")
+            )
+            if SESSION_LOGIN is not None:
                 return flask.redirect("/")
             return flask.render_template("registro.html")
         case "POST":
-            login: str | None = flask.request.form.get("login")
-            senha: str | None = flask.request.form.get("senha")
-            tipo: str | None = flask.request.form.get("tipo")
-            agencia: int = int(flask.request.form.get("agencia", 0))
-            saldo: float = float(flask.request.form.get("saldo", 0))
-            if not login or not senha:
+            FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
+                "login", type=str
+            )
+            FORM_SENHA: typing.Final[str | None] = flask.request.form.get(
+                "senha", type=str
+            )
+            FORM_TIPO: typing.Final[str | None] = flask.request.form.get(
+                "tipo", type=str
+            )
+            FORM_AGENCIA: typing.Final[int] = flask.request.form.get("agencia", 0, int)
+            FORM_SALDO: typing.Final[float] = flask.request.form.get(
+                "saldo", 0.0, float
+            )
+            if not FORM_LOGIN or not FORM_SENHA:
                 flask.abort(400, "Login e senha são obrigatórios")
-            hash: str = pbkdf2_sha256.hash(senha)
-            con: sqlite3.Connection = sqlite3.connect(
-                path.join(app.instance_path, "at3.db")
+            HASH: typing.Final[str] = pbkdf2_sha256.hash(FORM_SENHA)
+            CONNECTION: typing.Final[sqlite3.Connection] = sqlite3.connect(
+                BANCO_DE_DADOS
             )
             try:
-                cur: sqlite3.Cursor = con.execute(
-                    """INSERT INTO
+                CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+                    """
+                    INSERT INTO
                     conta(login, senha, tipo, agencia, saldo_inicial, saldo)
                     VALUES(?, ?, ?, ?, ?, ?)""",
-                    (login, hash, tipo, agencia, saldo, saldo),
+                    (FORM_LOGIN, HASH, FORM_TIPO, FORM_AGENCIA, FORM_SALDO, FORM_SALDO),
                 )
             except sqlite3.IntegrityError as e:
                 print(e)
                 flask.abort(400, "Erro no registro")
             else:
-                con.commit()
-                cur.close()
+                CONNECTION.commit()
+                CURSOR.close()
             finally:
-                con.close()
-            flask.session["login"] = login
+                CONNECTION.close()
+            flask.session["login"] = FORM_LOGIN
             return flask.redirect("/")
         case _:
             flask.abort(405, "Método não permitido")
 
 
-@app.route("/logout")
+@APP.route("/logout")
 def logout():
     flask.session.pop("login")
     return flask.redirect("/login")
 
 
-@app.route("/sacar", methods=("POST",))
+@APP.route("/sacar", methods=("POST",))
 def saque():
-    valor: float = float(flask.request.form.get("valor", 0))
-    if valor <= 0:
+    VALOR: typing.Final[float] = flask.request.form.get("valor", 0.0, float)
+    if VALOR <= 0:
         flask.abort(400, "Valor inválido")
-    login: str | None = flask.session.get("login")
-    with sqlite3.connect(path.join(app.instance_path, "at3.db")) as con:
-        cur: sqlite3.Cursor = con.execute(
-            "SELECT saldo FROM conta WHERE login = ?", (login,)
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get("login")
+    )
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+        CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+            "SELECT saldo FROM conta WHERE login = ?", (LOGIN,)
         )
-        saldo: float = cur.fetchone()[0]
-        if saldo < valor:
+        SALDO: typing.Final[float] = CURSOR.fetchone()[0]
+        if SALDO < VALOR:
             flask.abort(400, "Saldo insuficiente")
-        cur.execute(
-            "UPDATE conta SET saldo = saldo - ? WHERE login = ?", (valor, login)
+        CURSOR.execute(
+            "UPDATE conta SET saldo = saldo - ? WHERE login = ?", (VALOR, LOGIN)
         )
-        cur.execute("SELECT numero FROM conta WHERE login = ?", (login,))
-        numero: int = cur.fetchone()[0]
-        cur.execute(
+        CURSOR.execute("SELECT numero FROM conta WHERE login = ?", (LOGIN,))
+        NUMERO: typing.Final[int] = CURSOR.fetchone()[0]
+        CURSOR.execute(
             """INSERT INTO historico(tipo, valor, num_conta)
             VALUES('saque', ?, ?)""",
-            (valor, numero),
+            (VALOR, NUMERO),
         )
-        con.commit()
-        cur.close()
+        CONNECTION.commit()
+        CURSOR.close()
     return flask.redirect("/")
 
 
-@app.route("/depositar", methods=("POST",))
+@APP.route("/depositar", methods=("POST",))
 def deposito():
-    valor: float = float((flask.request.form).get("valor", 0))
-    if valor <= 0:
+    VALOR: typing.Final[float] = flask.request.form.get("valor", 0.0, float)
+    if VALOR <= 0:
         flask.abort(400, "Valor inválido")
-    login: str | None = flask.session.get("login")
-    with sqlite3.connect(path.join(app.instance_path, "at3.db")) as con:
-        cur: sqlite3.Cursor = con.execute(
-            "UPDATE conta SET saldo = saldo + ? WHERE login = ?", (valor, login)
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get("login")
+    )
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+        CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+            "UPDATE conta SET saldo = saldo + ? WHERE login = ?", (VALOR, LOGIN)
         )
-        cur.execute("SELECT numero FROM conta WHERE login = ?", (login,))
-        numero: int = cur.fetchone()[0]
-        cur.execute(
+        CURSOR.execute("SELECT numero FROM conta WHERE login = ?", (LOGIN,))
+        NUMERO: typing.Final[int] = CURSOR.fetchone()[0]
+        CURSOR.execute(
             """INSERT INTO historico(tipo, valor, num_conta)
             VALUES('deposito', ?, ?)""",
-            (valor, numero),
+            (VALOR, NUMERO),
         )
-        con.commit()
-        cur.close()
+        CONNECTION.commit()
+        CURSOR.close()
     return flask.redirect("/")
 
 
-@app.route("/transferir", methods=("POST",))
+@APP.route("/transferir", methods=("POST",))
 def transferencia():
-    valor: float = float(flask.request.form.get("valor", 0))
-    num_destino: int = int(flask.request.form.get("destino", 0))
-    if valor <= 0:
+    VALOR: typing.Final[float] = flask.request.form.get("valor", 0.0, float)
+    NUM_DESTINO: typing.Final[int] = flask.request.form.get("destino", 0, int)
+    if VALOR <= 0:
         flask.abort(400, "Valor inválido")
-    login: str | None = flask.session.get("login")
-    with sqlite3.connect(path.join(app.instance_path, "at3.db")) as con:
-        cur: sqlite3.Cursor = con.execute(
-            "SELECT saldo FROM conta WHERE login = ?", (login,)
+    LOGIN: typing.Final[str | None] = typing.cast(
+        str | None, flask.session.get("login")
+    )
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
+        CURSOR: typing.Final[sqlite3.Cursor] = CONNECTION.execute(
+            "SELECT saldo FROM conta WHERE login = ?", (LOGIN,)
         )
-        saldo: float = cur.fetchone()[0]
-        cur.execute("SELECT numero FROM conta WHERE login = ?", (login,))
-        numero: int = cur.fetchone()[0]
-        if numero == num_destino:
+        SALDO: typing.Final[float] = CURSOR.fetchone()[0]
+        CURSOR.execute("SELECT numero FROM conta WHERE login = ?", (LOGIN,))
+        NUMERO: typing.Final[int] = CURSOR.fetchone()[0]
+        if NUMERO == NUM_DESTINO:
             flask.abort(400, "Conta destino inválida")
-        if saldo < valor:
+        if SALDO < VALOR:
             flask.abort(400, "Saldo insuficiente")
-        cur.execute("SELECT * FROM conta WHERE numero = ?", (num_destino,))
-        if not cur.fetchone():
+        CURSOR.execute("SELECT * FROM conta WHERE numero = ?", (NUM_DESTINO,))
+        if not CURSOR.fetchone():
             flask.abort(400, "Conta destino inválida")
-        cur.execute(
-            "UPDATE conta SET saldo = saldo - ? WHERE numero = ?", (valor, numero)
+        CURSOR.execute(
+            "UPDATE conta SET saldo = saldo - ? WHERE numero = ?", (VALOR, NUMERO)
         )
-        cur.execute(
-            "UPDATE conta SET saldo = saldo + ? WHERE numero = ?", (valor, num_destino)
+        CURSOR.execute(
+            "UPDATE conta SET saldo = saldo + ? WHERE numero = ?", (VALOR, NUM_DESTINO)
         )
-        cur.execute(
+        CURSOR.execute(
             """INSERT INTO historico(tipo, valor, num_conta, num_conta_destino)
             VALUES('transferencia', ?, ?, ?)""",
-            (valor, numero, num_destino),
+            (VALOR, NUMERO, NUM_DESTINO),
         )
-        con.commit()
-        cur.close()
+        CONNECTION.commit()
+        CURSOR.close()
     return flask.redirect("/")
 
 
-@app.errorhandler(Exception)
-def tratar_erro(e: Exception):
-    flask.current_app.logger.exception(e)
-    if isinstance(e, exceptions.HTTPException):
-        return flask.render_template("erro.html", erro=e), (e.code or 500)
-    return flask.render_template("erro.html", erro=e), 500
+@APP.errorhandler(Exception)
+def tratar_erro(erro: Exception):
+    flask.current_app.logger.exception(erro)
+    if isinstance(erro, exceptions.HTTPException):
+        return flask.render_template("erro.html", erro=erro), (erro.code or 500)
+    return flask.render_template("erro.html", erro=erro), 500

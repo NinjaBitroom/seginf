@@ -1,3 +1,3 @@
 import at3
 
-at3.app.run()
+at3.APP.run()
