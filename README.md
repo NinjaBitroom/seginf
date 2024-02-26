@@ -1,6 +1,6 @@
 # seginf
 
-Exercícios de Segurança da Informação
+Exercícios de Segurança da Informação feitos em Python com Flask
 
 ## Requisitos
 
