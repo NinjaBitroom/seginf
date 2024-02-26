@@ -54,7 +54,7 @@ def index():
         flask.session.get("login"),  # type: ignore
     )
     if LOGIN is None:
-        return flask.redirect("/login")
+        return flask.redirect(flask.url_for("logar"))
     with sqlite3.connect(BANCO_DE_DADOS) as CONNECTION:
         CURSOR: sqlite3.Cursor = CONNECTION.execute(
             "SELECT numero, tipo, agencia, saldo FROM conta WHERE login = ?", (LOGIN,)
@@ -64,8 +64,8 @@ def index():
     return flask.render_template("index.html", conta=CONTA)
 
 
-@APP.route("/login", methods=("POST", "GET"))
-def login():
+@APP.route("/logar", methods=("POST", "GET"))
+def logar():
     match flask.request.method:
         case "GET":
             SESSION_LOGIN: typing.Final[str | None] = typing.cast(
@@ -73,7 +73,7 @@ def login():
                 flask.session.get("login"),  # type: ignore
             )
             if SESSION_LOGIN is not None:
-                return flask.redirect("/")
+                return flask.redirect(flask.url_for("index"))
             return flask.render_template("login.html")
         case "POST":
             FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
@@ -92,13 +92,13 @@ def login():
                 CURSOR.close()
             if SENHA_HASH and pbkdf2_sha256.verify(FORM_SENHA, SENHA_HASH[0]):
                 flask.session["login"] = FORM_LOGIN
-                return flask.redirect("/")
+                return flask.redirect(flask.url_for("index"))
             flask.abort(401, "Login ou senha inválidos")
         case _:
             flask.abort(405, "Método não permitido")
 
 
-@APP.route("/registro", methods=("POST", "GET"))
+@APP.route("/registrar", methods=("POST", "GET"))
 def registrar():
     match flask.request.method:
         case "GET":
@@ -107,7 +107,7 @@ def registrar():
                 flask.session.get("login"),  # type: ignore
             )
             if SESSION_LOGIN is not None:
-                return flask.redirect("/")
+                return flask.redirect(flask.url_for("index"))
             return flask.render_template("registro.html")
         case "POST":
             FORM_LOGIN: typing.Final[str | None] = flask.request.form.get(
@@ -146,19 +146,19 @@ def registrar():
             finally:
                 CONNECTION.close()
             flask.session["login"] = FORM_LOGIN
-            return flask.redirect("/")
+            return flask.redirect(flask.url_for("index"))
         case _:
             flask.abort(405, "Método não permitido")
 
 
-@APP.route("/logout")
-def logout():
+@APP.route("/deslogar")
+def deslogar():
     flask.session.pop("login")  # type: ignore
-    return flask.redirect("/login")
+    return flask.redirect(flask.url_for("logar"))
 
 
 @APP.route("/sacar", methods=("POST",))
-def saque():
+def sacar():
     VALOR: typing.Final[float] = flask.request.form.get("valor", 0.0, float)
     if VALOR <= 0:
         flask.abort(400, "Valor inválido")
@@ -185,11 +185,11 @@ def saque():
         )
         CONNECTION.commit()
         CURSOR.close()
-    return flask.redirect("/")
+    return flask.redirect(flask.url_for("index"))
 
 
 @APP.route("/depositar", methods=("POST",))
-def deposito():
+def depositar():
     VALOR: typing.Final[float] = flask.request.form.get("valor", 0.0, float)
     if VALOR <= 0:
         flask.abort(400, "Valor inválido")
@@ -210,11 +210,11 @@ def deposito():
         )
         CONNECTION.commit()
         CURSOR.close()
-    return flask.redirect("/")
+    return flask.redirect(flask.url_for("index"))
 
 
 @APP.route("/transferir", methods=("POST",))
-def transferencia():
+def transferir():
     VALOR: typing.Final[float] = flask.request.form.get("valor", 0.0, float)
     NUM_DESTINO: typing.Final[int] = flask.request.form.get("destino", 0, int)
     if VALOR <= 0:
@@ -250,7 +250,7 @@ def transferencia():
         )
         CONNECTION.commit()
         CURSOR.close()
-    return flask.redirect("/")
+    return flask.redirect(flask.url_for("index"))
 
 
 @APP.errorhandler(Exception)

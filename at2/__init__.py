@@ -155,15 +155,15 @@ def admin():
         str | None,
         flask.session.get("login"),  # type: ignore
     )
+    if SESSION_LOGIN is None:
+        return flask.redirect(flask.url_for("logar"))
     with sqlite3.connect(BANCO_DE_DADOS) as CONNECITON:
         CURSOR: typing.Final[sqlite3.Cursor] = CONNECITON.execute(
             "SELECT papel FROM login WHERE login = ?", (SESSION_LOGIN,)
         )
-        PAPEL: typing.Final[str | None] = CURSOR.fetchone()[0]
+        PAPEL: typing.Final[tuple[papeis] | None] = CURSOR.fetchone()
         CURSOR.close()
-    if SESSION_LOGIN is None:
-        return flask.redirect("/login")
-    if PAPEL != "admin":
+    if not PAPEL or PAPEL[0] != "admin":
         flask.abort(403, "Acesso negado")
     return flask.render_template("admin.html", login=SESSION_LOGIN)
 
