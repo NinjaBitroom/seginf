@@ -24,7 +24,7 @@ repos:
 -   repo: https://github.com/pdm-project/pdm
     rev: 2.12.3
     hooks:
-    -   id: pdm-lock-check
     -   id: pdm-sync
+    -   id: pdm-lock-check
     -   id: pdm-export
         args: ['-o', 'requirements.txt', '--without-hashes']
