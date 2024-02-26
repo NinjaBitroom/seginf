@@ -8,24 +8,30 @@
     <p>Número da conta: {{ conta[0] }}</p>
     <p>Tipo da conta: {{ conta[1] }}</p>
     <p>Agência: {{ conta[2] }}</p>
-    <p>Saldo: {{ conta[3] }}</p>
+    <p>Saldo: {{ conta[3]|round(2) }}</p>
     <hr>
     <h2>Depositar</h2>
     <form action="{{ url_for('depositar') }}" method="post">
-        <input type="number" name="valor" id="valor" placeholder="Valor" required>
+        <input type="number" name="valor" id="valor" placeholder="Valor" step="0.01" min="0.01" required>
         <button type="submit">Depositar</button>
     </form>
     <hr>
     <h2>Sacar</h2>
     <form action="{{ url_for('sacar') }}" method="post">
-        <input type="number" name="valor" id="valor" placeholder="Valor" required>
+        <input type="number" name="valor" id="valor" placeholder="Valor" step="0.01" min="0.01" required>
         <button type="submit">Sacar</button>
     </form>
     <hr>
     <h2>Fazer transferência</h2>
     <form action="{{ url_for('transferir') }}" method="post">
-        <input type="number" name="destino" id="destino" placeholder="Número da conta destino" required>
-        <input type="number" name="valor" id="valor" placeholder="Valor" required>
+        <label>
+            <p>Número da conta destino</p>
+            <input type="number" name="destino" id="destino" placeholder="Número da conta destino" min="1" required>
+        </label>
+        <label>
+            <p>Valor</p>
+            <input type="number" name="valor" id="valor" placeholder="Valor" step="0.01" min="0.01" required>
+        </label>
         <button type="submit">Transferir</button>
     </form>
 {% endblock %}

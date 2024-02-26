@@ -176,7 +176,11 @@ def perfil():
     )
     if LOGIN is None:
         return flask.redirect(flask.url_for("logar"))
-    return flask.render_template("perfil.html", login=LOGIN)
+    with sqlite3.connect(BANCO_DE_DADOS) as CONNECITON:
+        PAPEL: typing.Final[tuple[papeis | None]] = CONNECITON.execute(
+            "SELECT papel FROM login WHERE login = ?", (LOGIN,)
+        ).fetchone() or (None,)
+    return flask.render_template("perfil.html", login=LOGIN, papel=PAPEL[0])
 
 
 @APP.errorhandler(Exception)

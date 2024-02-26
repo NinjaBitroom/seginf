@@ -6,7 +6,7 @@ Neste exercício, você deve desenvolver um sistema completo de autenticação e
 
 ## Requisitos
 
-Crie um banco de dados que armazenará as informações de login e autorização dos usuários. O banco de dados deve conter, pelo menos, as seguintes colunas: **id**, **login**, **senha**, **papel** ou **função do usuário** (por exemplo: *administrador*, *usuário comum*) e *permissões associadas*.
+Crie um banco de dados que armazenará as informações de login e autorização dos usuários. O banco de dados deve conter, pelo menos, as seguintes colunas: **id**, **login**, **senha**, **papel** ou **função do usuário** (por exemplo: *administrador*, *usuário comum*) e ~~permissões associadas~~.
 
 Desenvolva uma página de registro onde os usuários possam criar suas contas. Eles devem fornecer um nome de usuário único, uma senha e selecionar uma função (como administrador ou usuário comum) durante o registro.
 

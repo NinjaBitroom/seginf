@@ -3,5 +3,7 @@
 {% block principal %}
     <h1>Seu perfil</h1>
     <p>Bem-vindo! {{ login }}</p>
+    <p>Seu papel é: {{ papel }}</p>
+    <a href="{{ url_for('index') }}">Início</a>
     <a href="{{ url_for('deslogar') }}">Deslogar</a>
 {% endblock %}

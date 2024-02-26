@@ -2,5 +2,6 @@
 {% block titulo %}Início{% endblock %}
 {% block principal %}
     <h1>Parabéns {{ login }}! Você está autenticado!</h1>
+    <a href="{{ url_for('perfil') }}">Perfil</a>
     <a href="{{ url_for('deslogar') }}">Deslogar</a>
 {% endblock %}
